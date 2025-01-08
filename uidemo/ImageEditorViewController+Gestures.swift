@@ -11,7 +11,6 @@ extension ImageEditorViewController {
         imageView.addGestureRecognizer(panGesture)
         imageView.addGestureRecognizer(rotationGesture)
         
-        // 允许手势同时识别
         panGesture.delegate = self
         pinchGesture.delegate = self
         rotationGesture.delegate = self
@@ -22,7 +21,6 @@ extension ImageEditorViewController {
         
         if gesture.state == .began || gesture.state == .changed {
             currentScale *= gesture.scale
-            // 限制缩放范围
             currentScale = min(max(currentScale, 0.5), 3.0)
             updateTransform()
             gesture.scale = 1.0
@@ -58,7 +56,6 @@ extension ImageEditorViewController {
     }
 }
 
-// MARK: - UIGestureRecognizerDelegate
 extension ImageEditorViewController: UIGestureRecognizerDelegate {
     func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
         return true

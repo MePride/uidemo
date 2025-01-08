@@ -5,42 +5,32 @@ import Photos
 extension ImageEditorViewController {
     @objc func resetButtonTapped() {
         UIView.animate(withDuration: 0.3) {
-            self.currentScale = 1.0
-            self.currentRotation = 0
-            self.imageView.transform = .identity
-            self.imageView.center = self.containerView.center
-        }
+        self.currentScale = 1.0
+        self.currentRotation = 0
+        self.imageView.transform = .identity
+        let centerX = self.containerView.bounds.width / 2
+        let centerY = self.containerView.bounds.height / 2
+        self.imageView.center = CGPoint(x: centerX, y: centerY)
     }
-    
+}
     @objc func saveButtonTapped() {
         guard let image = imageView.image else {
             showAlert(message: "请先选择图片")
             return
         }
-        
-        // 创建一个和容器视图大小相同的上下文
+        let originalCornerRadius = containerView.layer.cornerRadius
+        containerView.layer.cornerRadius = 0
         UIGraphicsBeginImageContextWithOptions(containerView.bounds.size, false, UIScreen.main.scale)
-        guard let context = UIGraphicsGetCurrentContext() else { return }
-        
-        // 保存当前上下文状态
-        context.saveGState()
-        
-        // 将绘制范围限制在容器视图的bounds内
-        context.addRect(containerView.bounds)
-        context.clip()
-        
-        // 将容器视图的内容渲染到上下文
+        guard let context = UIGraphicsGetCurrentContext() else {
+            containerView.layer.cornerRadius = originalCornerRadius
+            return
+        }
         containerView.drawHierarchy(in: containerView.bounds, afterScreenUpdates: true)
-        
-        // 恢复上下文状态
-        context.restoreGState()
-        
-        // 获取最终图片
         if let editedImage = UIGraphicsGetImageFromCurrentImageContext() {
             UIImageWriteToSavedPhotosAlbum(editedImage, self, #selector(image(_:didFinishSavingWithError:contextInfo:)), nil)
         }
-        
         UIGraphicsEndImageContext()
+        containerView.layer.cornerRadius = originalCornerRadius
     }
 
     
@@ -66,28 +56,27 @@ extension ImageEditorViewController {
     }
 }
 
-// MARK: - UIImagePickerControllerDelegate
 extension ImageEditorViewController: UIImagePickerControllerDelegate, UINavigationControllerDelegate {
     func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
         if let image = info[.originalImage] as? UIImage {
             imageView.image = image
-            
-            // 计算图片在容器中的适当大小
+            updateContainerAspectRatio()
             let containerSize = containerView.bounds.size
             let imageSize = image.size
             
             let widthRatio = containerSize.width / imageSize.width
             let heightRatio = containerSize.height / imageSize.height
             let scale = min(widthRatio, heightRatio)
-            
-            // 设置图片视图的大小约束
             imageView.removeConstraints(imageView.constraints)
             NSLayoutConstraint.activate([
                 imageView.widthAnchor.constraint(equalToConstant: imageSize.width * scale),
-                imageView.heightAnchor.constraint(equalToConstant: imageSize.height * scale)
+                imageView.heightAnchor.constraint(equalToConstant: imageSize.height * scale),
+                imageView.centerXAnchor.constraint(equalTo: containerView.centerXAnchor),
+                imageView.centerYAnchor.constraint(equalTo: containerView.centerYAnchor)
             ])
-            
-            resetButtonTapped()
+            self.currentScale = 1.0
+            self.currentRotation = 0
+            self.imageView.transform = .identity
         }
         picker.dismiss(animated: true)
     }
